@@ -19,10 +19,15 @@ Amazon CloudWatch monitors logs, API requests, Lambda execution, and model perfo
 
 ## AWS Services Used
 
-- Amazon S3 – Data lake storage
-- Amazon SageMaker – Machine learning model training
-- Amazon Athena – Serverless SQL analytics
-- Amazon QuickSight – Business intelligence dashboard
+- Amazon S3 – Data lake storage for transaction records and prediction outputs
+- AWS Glue – ETL processing and data cataloging
+- Amazon SageMaker – Machine learning model training and real-time inference
+- Amazon Athena – Serverless SQL analytics on cloud data
+- Amazon QuickSight – Interactive fraud analytics dashboard
+- AWS Lambda – Serverless real-time fraud event processing
+- Amazon API Gateway – REST API for transaction submission
+- Amazon Kinesis – Streaming ingestion of transaction events
+- Amazon CloudWatch – Monitoring, logging, and performance tracking
 
 ## Dataset
 
@@ -114,6 +119,7 @@ Full dashboard report:
 
 ## Author
 Mingyu Fan, Cheng-yang Lee, Wei-Chen Wang
+
 
 
 

@@ -102,12 +102,15 @@ The QuickSight dashboard visualizes fraud analytics including:
 - Fraud by Merchant
 - Fraud by Payment Method
 
+![QuickSight Dashboard](dashboard/quicksight_dashboard.png)
+
 Full dashboard report:
 
 [Download PDF Version](dashboard/Analysis.pdf)
 
 ## Author
 Mingyu Fan, Cheng-yang Lee, Wei-Chen Wang
+
 
 
 

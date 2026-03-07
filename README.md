@@ -95,9 +95,11 @@ The following diagram illustrates the cloud architecture used for the fraud dete
 
 ## Dashboard Demo
 
-See dashboard screenshot in the `dashboard` folder.
+dashboard screenshot :
+![Dashboard](dashboard/Analytics.pdf)
 
 ## Author
 Mingyu Fan, Cheng-yang Lee, Wei-Chen Wang
+
 
 

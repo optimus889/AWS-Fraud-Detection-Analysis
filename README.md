@@ -6,12 +6,16 @@ The system combines machine learning and cloud analytics to identify suspicious 
 
 ## Architecture
 
-S3 → SageMaker → Athena → QuickSight
+This project includes both batch analytics and real-time fraud detection pipelines on AWS.
 
-1. Amazon S3 stores the transaction dataset
-2. Amazon SageMaker trains the fraud detection model
-3. Amazon Athena performs SQL analytics on cloud data
-4. Amazon QuickSight visualizes fraud insights through dashboards
+### Batch Analytics Pipeline
+Amazon S3 → AWS Glue → Amazon Athena → Amazon QuickSight
+
+### Real-Time Detection Pipeline
+API Gateway → Amazon Kinesis → AWS Lambda → Amazon SageMaker Endpoint
+
+### Monitoring
+Amazon CloudWatch monitors logs, API requests, Lambda execution, and model performance.
 
 ## AWS Services Used
 
@@ -110,6 +114,7 @@ Full dashboard report:
 
 ## Author
 Mingyu Fan, Cheng-yang Lee, Wei-Chen Wang
+
 
 
 

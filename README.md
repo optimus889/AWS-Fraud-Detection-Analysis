@@ -12,7 +12,7 @@ This project includes both batch analytics and real-time fraud detection pipelin
 Amazon S3 → AWS Glue → Amazon Athena → Amazon QuickSight
 
 ### Real-Time Detection Pipeline
-Client/Application → Amazon API Gateway → Amazon Kinesis → AWS Lambda → Amazon SageMaker Endpoint
+Client/Application → Amazon API Gateway → Amazon Kinesis → AWS Lambda → Amazon SageMaker Endpoint → Prediction Results → Amazon S3
 
 ### Monitoring
 Amazon CloudWatch monitors logs, API requests, Lambda execution, and model performance.
@@ -184,6 +184,7 @@ Full dashboard report:
 
 ## Author
 Mingyu Fan, Cheng-yang Lee, Wei-Chen Wang
+
 
 
 

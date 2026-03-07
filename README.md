@@ -95,11 +95,20 @@ The following diagram illustrates the cloud architecture used for the fraud dete
 
 ## Dashboard Demo
 
-dashboard screenshot :
-![Dashboard](dashboard/Analysis.pdf)
+The QuickSight dashboard visualizes fraud analytics including:
+
+- Fraud vs Normal transactions
+- Fraud by Location
+- Fraud by Merchant
+- Fraud by Payment Method
+
+Full dashboard report:
+
+[Download PDF Version](dashboard/Analysis.pdf)
 
 ## Author
 Mingyu Fan, Cheng-yang Lee, Wei-Chen Wang
+
 
 
 

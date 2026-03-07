@@ -17,6 +17,28 @@ API Gateway → Amazon Kinesis → AWS Lambda → Amazon SageMaker Endpoint
 ### Monitoring
 Amazon CloudWatch monitors logs, API requests, Lambda execution, and model performance.
 
+## Real-Time Fraud Detection
+
+The project supports real-time fraud detection using Amazon API Gateway, Amazon Kinesis, AWS Lambda, and a deployed Amazon SageMaker endpoint.
+
+1. A transaction request is submitted through API Gateway
+2. The event is streamed through Amazon Kinesis
+3. AWS Lambda processes the transaction data
+4. Lambda invokes the SageMaker endpoint for fraud prediction
+5. Prediction results are stored for further analytics and visualization
+
+This design enables near real-time fraud scoring for suspicious transactions.
+
+## Data Processing Pipeline
+
+AWS Glue is used to clean, transform, and catalog transaction data stored in Amazon S3.
+The Glue Data Catalog makes the dataset queryable in Amazon Athena, enabling efficient SQL-based fraud analysis.
+
+## Monitoring and Observability
+
+Amazon CloudWatch is used to collect logs and monitor service performance across API Gateway, Lambda, Kinesis, and SageMaker.
+It helps track inference latency, execution errors, and overall pipeline health.
+
 ## AWS Services Used
 
 - Amazon S3 – Data lake storage for transaction records and prediction outputs
@@ -119,6 +141,7 @@ Full dashboard report:
 
 ## Author
 Mingyu Fan, Cheng-yang Lee, Wei-Chen Wang
+
 
 
 

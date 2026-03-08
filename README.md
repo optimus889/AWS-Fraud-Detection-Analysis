@@ -91,7 +91,6 @@ These visualizations help identify fraud patterns quickly.
 
 The following diagram illustrates the cloud architecture used for the fraud detection analytics system built on AWS.
 
-![AWS Architecture](architecture/architecture.png)
 
 ## Dashboard Demo
 
@@ -110,6 +109,7 @@ Full dashboard report:
 
 ## Author
 Mingyu Fan, Cheng-yang Lee, Wei-Chen Wang
+
 
 
 

@@ -85,12 +85,12 @@ These visualizations help identify fraud patterns quickly.
 3. Analyze fraud patterns using Athena SQL
 4. Build fraud analytics dashboard using QuickSight
 
-## Architecture Demo
+## Architecture Diagram
 
 ## AWS Architecture
 
 The following diagram illustrates the cloud architecture used for the fraud detection analytics system built on AWS.
-
+![AWS Architecture](architecture/architecture.png)
 
 ## Dashboard Demo
 
@@ -109,6 +109,7 @@ Full dashboard report:
 
 ## Author
 Mingyu Fan, Cheng-yang Lee, Wei-Chen Wang
+
 
 
 

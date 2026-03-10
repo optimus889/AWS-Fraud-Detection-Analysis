@@ -48,3 +48,4 @@ df = pd.DataFrame(data)
 df.to_csv("fraud_transactions.csv", index=False)
 
 print("Dataset generated: fraud_transactions.csv")
+

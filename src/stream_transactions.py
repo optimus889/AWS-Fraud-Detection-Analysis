@@ -32,7 +32,7 @@ def generate_transaction(tx_id):
 
     transaction = {
         "transaction_id": tx_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now().isoformat(),
         "amount": amount,
         "merchant": random.choice(merchants),
         "location": random.choice(locations),

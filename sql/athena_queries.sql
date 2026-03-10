@@ -1,70 +1,59 @@
 -- Create database
-CREATE DATABASE IF NOT EXISTS fraud_demo_db;
+CREATE DATABASE IF NOT EXISTS fraud_analytics;
 
 --Create Table
-CREATE EXTERNAL TABLE IF NOT EXISTS fraud_demo_db.fraud_transactions (
-    transaction_id BIGINT,
-    timestamp STRING,
-    amount DOUBLE,
-    merchant STRING,
-    location STRING,
-    payment_method STRING,
-    fraud INT
+CREATE EXTERNAL TABLE IF NOT EXISTS predictions (
+  transaction_id string,
+  timestamp string,
+  amount double,
+  merchant string,
+  location string,
+  payment_method string,
+  actual_fraud int,
+  prediction_score double,
+  predicted_fraud int
 )
-ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
-WITH SERDEPROPERTIES (
-    'separatorChar' = ',',
-    'quoteChar' = '"',
-    'escapeChar' = '\\'
-)
-STORED AS TEXTFILE
-LOCATION 's3://finalproject-fraud-detection/raw/'
-TBLPROPERTIES ('skip.header.line.count'='1');
+ROW FORMAT SERDE 'org.apache.hive.hcatalog.data.JsonSerDe'
+LOCATION 's3://finalproject-fraud-detection/predictions/';
 
--- Test
-SELECT * FROM fraud_demo_db.fraud_transactions LIMIT 10;
+-- Test 10 queries
+SELECT *
+FROM predictions
+LIMIT 10;
 
--- Fraud vs Normal transactions
-SELECT fraud, COUNT(*) AS transaction_count
-FROM fraud_demo_db.fraud_transactions
-GROUP BY fraud
-ORDER BY fraud;
-
--- Fraud by location
-SELECT location, COUNT(*) AS fraud_count
-FROM fraud_demo_db.fraud_transactions
-WHERE fraud = 1
-GROUP BY location
-ORDER BY fraud_count DESC;
-
--- Fraud by merchant
-SELECT merchant, COUNT(*) AS fraud_count
-FROM fraud_demo_db.fraud_transactions
-WHERE fraud = 1
-GROUP BY merchant
-ORDER BY fraud_count DESC;
-
--- Fraud by payment method
-SELECT payment_method, COUNT(*) AS fraud_count
-FROM fraud_demo_db.fraud_transactions
-WHERE fraud = 1
-GROUP BY payment_method
-ORDER BY fraud_count DESC;
-
--- Fraud by transaction amount range
+-- Overall Fraud Detection Summary
 SELECT
-CASE
-WHEN amount < 100 THEN 'Low'
-WHEN amount BETWEEN 100 AND 500 THEN 'Medium'
-ELSE 'High'
-END AS amount_range,
-COUNT(*) AS fraud_count
-FROM fraud_demo_db.fraud_transactions
-WHERE fraud = 1
-GROUP BY
-CASE
-WHEN amount < 100 THEN 'Low'
-WHEN amount BETWEEN 100 AND 500 THEN 'Medium'
-ELSE 'High'
-END
-ORDER BY fraud_count DESC;
+  COUNT(*) AS total_predictions,
+  SUM(predicted_fraud) AS total_fraud_flags,
+  AVG(prediction_score) AS avg_prediction_score
+FROM fraud_analytics.predictions;
+
+-- Fraud Detection by Merchant
+SELECT
+  merchant,
+  COUNT(*) AS total_transactions,
+  SUM(predicted_fraud) AS fraud_transactions,
+  AVG(prediction_score) AS avg_score
+FROM fraud_analytics.predictions
+GROUP BY merchant
+ORDER BY fraud_transactions DESC, avg_score DESC;
+
+-- Fraud Detection by Location
+SELECT
+  location,
+  COUNT(*) AS total_transactions,
+  SUM(predicted_fraud) AS fraud_transactions,
+  AVG(prediction_score) AS avg_score
+FROM fraud_analytics.predictions
+GROUP BY location
+ORDER BY fraud_transactions DESC, avg_score DESC;
+
+-- Fraud Detection by Payment Method
+SELECT
+  payment_method,
+  COUNT(*) AS total_transactions,
+  SUM(predicted_fraud) AS fraud_transactions,
+  AVG(prediction_score) AS avg_score
+FROM fraud_analytics.predictions
+GROUP BY payment_method
+ORDER BY fraud_transactions DESC, avg_score DESC;

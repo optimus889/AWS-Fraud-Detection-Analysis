@@ -1,0 +1,31 @@
+# ── Core Data & ML ──────────────────────────────────────────────
+numpy>=1.26.0
+pandas>=2.2.0
+scikit-learn>=1.4.0
+xgboost>=2.0.0
+joblib>=1.3.0
+
+# ── AWS SDK ──────────────────────────────────────────────────────
+boto3>=1.34.0
+botocore>=1.34.0
+
+# ── Offline Data Generation ──────────────────────────────────────
+faker>=24.0.0
+
+# ── Real-Time Stream (Kinesis Producer) ──────────────────────────
+# boto3 handles Kinesis put_record natively (no extra package needed)
+
+# ── Data Storage & I/O ───────────────────────────────────────────
+pyarrow>=15.0.0          # Parquet support for S3/Athena
+s3fs>=2024.2.0           # S3 filesystem interface
+
+# ── Lambda Runtime (bundled separately in lambda/) ───────────────
+# aws-lambda-powertools>=2.36.0   # Optional: structured logging in Lambda
+
+# ── Monitoring & Logging ─────────────────────────────────────────
+watchtower>=3.1.0        # CloudWatch log handler for Python logging
+
+# ── Utilities ────────────────────────────────────────────────────
+python-dotenv>=1.0.0     # Load environment variables from .env
+tqdm>=4.66.0             # Progress bars for offline training/upload
+requests>=2.31.0

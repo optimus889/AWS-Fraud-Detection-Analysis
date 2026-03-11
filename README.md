@@ -68,6 +68,127 @@ CloudWatch
 
 ---
 
+## IAM Role & Policy Requirements
+
+This project requires the following IAM roles and permission policies to be configured before running.
+
+### 1. Local Ubuntu Machine — IAM User / Role
+
+The machine running `offline_transaction.py` and `stream_transactions.py` must be configured via AWS CLI (`aws configure`) with credentials that have the following permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::finalproject-fraud-detection",
+        "arn:aws:s3:::finalproject-fraud-detection/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kinesis:PutRecord",
+        "kinesis:PutRecords",
+        "kinesis:DescribeStream"
+      ],
+      "Resource": "arn:aws:kinesis:*:*:stream/fraud-stream"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sagemaker:CreateTrainingJob",
+        "sagemaker:DescribeTrainingJob",
+        "sagemaker:CreateModel",
+        "sagemaker:CreateEndpointConfig",
+        "sagemaker:CreateEndpoint",
+        "sagemaker:DescribeEndpoint",
+        "sagemaker:InvokeEndpoint"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### 2. SageMaker Execution Role
+
+The SageMaker training job requires an execution role with the following managed policies attached:
+
+| Managed Policy | Purpose |
+|---|---|
+| `AmazonSageMakerFullAccess` | Training, model, and endpoint management |
+| `AmazonS3FullAccess` | Read raw data from S3, write model artifacts |
+| `CloudWatchLogsFullAccess` | Write training logs to CloudWatch |
+
+### 3. Lambda Execution Role
+
+The Lambda inference function requires an execution role with the following permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kinesis:GetRecords",
+        "kinesis:GetShardIterator",
+        "kinesis:DescribeStream",
+        "kinesis:ListStreams"
+      ],
+      "Resource": "arn:aws:kinesis:*:*:stream/fraud-stream"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sagemaker:InvokeEndpoint"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::finalproject-fraud-detection/predictions/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:*:*:*"
+    }
+  ]
+}
+```
+
+### 4. CloudWatch & SNS
+
+CloudWatch Alarms require permission to publish to SNS. Attach the following to the CloudWatch alarm action role or use the AWS-managed `CloudWatchFullAccess` policy:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "sns:Publish"
+  ],
+  "Resource": "arn:aws:sns:*:*:fraud-alert-topic"
+}
+```
+
+---
+
 ## S3 Bucket Structure
 
 **Bucket:** `finalproject-fraud-detection`
@@ -78,7 +199,6 @@ finalproject-fraud-detection/
 ├── processed/            # Cleaned / feature-engineered data
 ├── predictions/          # Lambda inference output (fraud scores)
 ├── model/                # Trained SageMaker XGBoost model artifacts
-├── logs/                 # Offline training logs
 └── Athena-results/       # Athena query output files
 ```
 
@@ -93,7 +213,6 @@ AWS-Fraud-Detection-Analysis/
 ├── dataset/              # Offline-generated transaction datasets
 ├── lambda/               # Lambda function source code
 ├── model/                # Offline-trained model artifacts
-├── cloudwatch/           # CloudWatch monitoring configuration and logs
 ├── sql/                  # Athena SQL query scripts
 ├── src/
 │   ├── offline_transaction.py    # Synthetic dataset generation & S3 upload
@@ -116,15 +235,17 @@ AWS-Fraud-Detection-Analysis/
 ### Installation
 
 ```bash
-git clone https://github.com/<your-username>/AWS-Fraud-Detection-Analysis.git
+git clone https://github.com/optimus889/AWS-Fraud-Detection-Analysis.git
 cd AWS-Fraud-Detection-Analysis
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ### Step 1 — Generate Dataset & Train Model (Offline)
 
 ```bash
-python src/offline_transaction.py
+python3 src/offline_transaction.py
 ```
 
 This script generates a synthetic transaction dataset, uploads it to `s3://finalproject-fraud-detection/raw/`, and triggers SageMaker XGBoost training. The trained model artifact is saved to `s3://finalproject-fraud-detection/model/`.
@@ -136,7 +257,7 @@ Deploy the trained model as a real-time SageMaker inference endpoint via the AWS
 ### Step 3 — Start Real-Time Stream
 
 ```bash
-python src/stream_transactions.py
+python3 src/stream_transactions.py
 ```
 
 This script streams simulated transactions to the Kinesis `fraud-stream`. Lambda automatically invokes the SageMaker endpoint for each record and writes predictions to `s3://finalproject-fraud-detection/predictions/`.
@@ -151,7 +272,7 @@ Connect QuickSight to the Athena data source and load the dashboard configuratio
 
 ### Step 6 — Monitor with CloudWatch & SNS
 
-CloudWatch monitors Lambda invocations, stream throughput, and fraud rate metrics. An alarm triggers an SNS notification when the fraud rate exceeds the configured threshold. Configuration files are located in `cloudwatch/`.
+CloudWatch monitors Lambda invocations, stream throughput, and fraud rate metrics. An alarm triggers an SNS notification when the fraud rate exceeds the configured threshold.
 
 ---
 

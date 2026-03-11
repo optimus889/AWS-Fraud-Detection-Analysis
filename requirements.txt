@@ -17,7 +17,7 @@ faker>=24.0.0
 
 # ── Data Storage & I/O ───────────────────────────────────────────
 pyarrow>=15.0.0          # Parquet support for S3/Athena
-s3fs>=2024.2.0           # S3 filesystem interface
+s3fs>=2024.2.0,!=2025.3.1.*  # S3 filesystem interface
 
 # ── Lambda Runtime (bundled separately in lambda/) ───────────────
 # aws-lambda-powertools>=2.36.0   # Optional: structured logging in Lambda

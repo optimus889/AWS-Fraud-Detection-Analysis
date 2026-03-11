@@ -70,57 +70,21 @@ CloudWatch
 
 ## IAM Role & Policy Requirements
 
-This project requires the following IAM roles and permission policies to be configured before running.
+This project requires the following IAM roles and permission policies to be configured in the AWS Console before running. All policies are attached directly via **IAM → Roles → Attach policies** or **IAM → Users → Add permissions**.
 
-### 1. Local Ubuntu Machine — IAM User / Role
+### 1. Local Ubuntu Machine — IAM User
 
-The machine running `offline_transaction.py` and `stream_transactions.py` must be configured via AWS CLI (`aws configure`) with credentials that have the following permissions:
+The machine running `offline_transaction.py` and `stream_transactions.py` must be configured via AWS CLI (`aws configure`). In the AWS Console, go to **IAM → Users → your user → Add permissions → Attach policies directly** and attach the following AWS managed policies:
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:PutObject",
-        "s3:GetObject",
-        "s3:ListBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::finalproject-fraud-detection",
-        "arn:aws:s3:::finalproject-fraud-detection/*"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "kinesis:PutRecord",
-        "kinesis:PutRecords",
-        "kinesis:DescribeStream"
-      ],
-      "Resource": "arn:aws:kinesis:*:*:stream/fraud-stream"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "sagemaker:CreateTrainingJob",
-        "sagemaker:DescribeTrainingJob",
-        "sagemaker:CreateModel",
-        "sagemaker:CreateEndpointConfig",
-        "sagemaker:CreateEndpoint",
-        "sagemaker:DescribeEndpoint",
-        "sagemaker:InvokeEndpoint"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+| Managed Policy | Purpose |
+|---|---|
+| `AmazonS3FullAccess` | Upload raw data and read model artifacts from S3 |
+| `AmazonKinesisFullAccess` | Put records to `fraud-stream` |
+| `AmazonSageMakerFullAccess` | Submit training jobs and invoke endpoint |
 
 ### 2. SageMaker Execution Role
 
-The SageMaker training job requires an execution role with the following managed policies attached:
+In the AWS Console, go to **IAM → Roles → Create role → AWS service → SageMaker**, then attach the following managed policies:
 
 | Managed Policy | Purpose |
 |---|---|
@@ -130,62 +94,23 @@ The SageMaker training job requires an execution role with the following managed
 
 ### 3. Lambda Execution Role
 
-The Lambda inference function requires an execution role with the following permissions:
+In the AWS Console, go to **IAM → Roles → Create role → AWS service → Lambda**, then attach the following managed policies:
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "kinesis:GetRecords",
-        "kinesis:GetShardIterator",
-        "kinesis:DescribeStream",
-        "kinesis:ListStreams"
-      ],
-      "Resource": "arn:aws:kinesis:*:*:stream/fraud-stream"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "sagemaker:InvokeEndpoint"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:PutObject"
-      ],
-      "Resource": "arn:aws:s3:::finalproject-fraud-detection/predictions/*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource": "arn:aws:logs:*:*:*"
-    }
-  ]
-}
-```
+| Managed Policy | Purpose |
+|---|---|
+| `AmazonKinesisFullAccess` | Read records from `fraud-stream` |
+| `AmazonSageMakerFullAccess` | Invoke SageMaker inference endpoint |
+| `AmazonS3FullAccess` | Write prediction results to `predictions/` |
+| `CloudWatchLogsFullAccess` | Write Lambda execution logs |
 
 ### 4. CloudWatch & SNS
 
-CloudWatch Alarms require permission to publish to SNS. Attach the following to the CloudWatch alarm action role or use the AWS-managed `CloudWatchFullAccess` policy:
+In the AWS Console, go to **IAM → Roles → your CloudWatch role → Add permissions → Attach policies directly** and attach:
 
-```json
-{
-  "Effect": "Allow",
-  "Action": [
-    "sns:Publish"
-  ],
-  "Resource": "arn:aws:sns:*:*:fraud-alert-topic"
-}
-```
+| Managed Policy | Purpose |
+|---|---|
+| `CloudWatchFullAccess` | Create alarms, metrics, and dashboards |
+| `AmazonSNSFullAccess` | Publish fraud rate alerts to `fraud-alert-topic` |
 
 ---
 

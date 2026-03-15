@@ -17,6 +17,23 @@ This project implements an end-to-end fraud detection system using AWS managed s
 
 ---
 
+## Dataset
+
+The raw dataset (`PS_20174392719_1491204439457_log.csv`, ~470 MB) exceeds GitHub's file size limit and is **not included in this repository**. It is stored in S3 and must be downloaded before running the pipeline.
+
+**Download from S3:**
+
+```bash
+aws s3 cp s3://finalproject-fraud-detection/raw/PS_20174392719_1491204439457_log.csv \
+    dataset/PS_20174392719_1491204439457_log.csv
+```
+
+> Make sure your AWS CLI is configured (`aws configure`) with credentials that have `AmazonS3FullAccess` or at minimum read access to the `finalproject-fraud-detection` bucket.
+
+**Original source:** [PaySim Synthetic Financial Dataset — Kaggle](https://www.kaggle.com/datasets/ealaxi/paysim1)
+
+---
+
 ## Architecture
 
 ### Offline Pipeline (Model Training)
@@ -175,7 +192,7 @@ finalproject-fraud-detection/
 AWS-Fraud-Detection-Analysis/
 ├── architecture/                         # AWS architecture diagrams
 ├── dashboard/                            # QuickSight exported visualizations
-├── dataset/                              # Offline-generated transaction datasets
+├── dataset/                              # Offline-generated transaction datasets (see Dataset section)
 ├── lambda/
 │   └── fraud_detection_lambda.py         # Lambda handler: decode → feature build → batch infer → S3 write
 ├── model/                                # Offline-trained model artifacts
@@ -208,13 +225,13 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Step 1 — Upload Dataset to S3
+### Step 1 — Download Dataset from S3
 
-Upload the raw dataset to S3 before running the notebook:
+The raw dataset is stored in S3 and must be downloaded locally before running the notebook:
 
 ```bash
-aws s3 cp dataset/PS_20174392719_1491204439457_log.csv \
-    s3://finalproject-fraud-detection/raw/
+aws s3 cp s3://finalproject-fraud-detection/raw/PS_20174392719_1491204439457_log.csv \
+    dataset/PS_20174392719_1491204439457_log.csv
 ```
 
 ### Step 2 — Train Model (SageMaker Notebook)

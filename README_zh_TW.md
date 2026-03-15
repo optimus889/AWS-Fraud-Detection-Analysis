@@ -1,3 +1,5 @@
+**[English](README.md) | [简体中文](README_zh_CN.md) | [繁體中文](README_zh_TW.md)**
+
 # AWS 詐欺偵測分析
 
 基於 AWS 建構的即時詐欺偵測流水線，整合離線 XGBoost 模型訓練、即時交易流推理、自動告警與互動式視覺化。

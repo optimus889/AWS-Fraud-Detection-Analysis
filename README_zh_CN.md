@@ -1,3 +1,5 @@
+**[English](README.md) | [简体中文](README_zh_CN.md) | [繁體中文](README_zh_TW.md)**
+
 # AWS 欺诈检测分析
 
 基于 AWS 构建的实时欺诈检测流水线，集成离线 XGBoost 模型训练、实时交易流推理、自动告警与交互式可视化。

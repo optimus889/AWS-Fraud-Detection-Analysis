@@ -8,6 +8,7 @@ from datetime import datetime
 # AWS clients
 runtime = boto3.client("sagemaker-runtime")
 s3 = boto3.client("s3")
+cloudwatch = boto3.client("cloudwatch")
 
 # Environment variables
 ENDPOINT_NAME = os.environ.get("ENDPOINT_NAME", "sagemaker-xgboost-2026-03-13-23-05-26-528")
@@ -16,6 +17,9 @@ PREDICTION_PREFIX = os.environ.get("PREDICTION_PREFIX", "predictions/realtime")
 ENDPOINT_BATCH_SIZE = int(os.environ.get("ENDPOINT_BATCH_SIZE", "500"))
 SAVE_ONE_FILE_PER_BATCH = os.environ.get("SAVE_ONE_FILE_PER_BATCH", "true").lower() == "true"
 THRESHOLD = float(os.environ.get("THRESHOLD", "0.5"))
+
+# CloudWatch custom metric namespace
+CW_NAMESPACE = os.environ.get("CW_NAMESPACE", "FraudDetection")
 
 
 def safe_float(value, default=0.0):
@@ -35,6 +39,21 @@ def safe_int(value, default=0):
 def chunked(items, size):
     for i in range(0, len(items), size):
         yield items[i:i + size]
+
+
+def publish_cloudwatch_metrics(metric_data):
+    """
+    Publish custom CloudWatch metrics in batches.
+    CloudWatch put_metric_data supports up to 20 metrics per call.
+    """
+    if not metric_data:
+        return
+
+    for batch in chunked(metric_data, 20):
+        cloudwatch.put_metric_data(
+            Namespace=CW_NAMESPACE,
+            MetricData=batch
+        )
 
 
 def build_feature_vector(record):
@@ -162,6 +181,11 @@ def lambda_handler(event, context):
     valid_records = []
     decode_errors = []
 
+    total_input_records = len(event.get("Records", []))
+    endpoint_error_count = 0
+    prediction_mismatch_count = 0
+    s3_write_success_count = 0
+
     # Step 1: Decode Kinesis records
     for item in event.get("Records", []):
         try:
@@ -174,6 +198,24 @@ def lambda_handler(event, context):
             })
 
     if not valid_records:
+        publish_cloudwatch_metrics([
+            {
+                "MetricName": "InputRecordCount",
+                "Value": total_input_records,
+                "Unit": "Count"
+            },
+            {
+                "MetricName": "ValidRecordCount",
+                "Value": 0,
+                "Unit": "Count"
+            },
+            {
+                "MetricName": "DecodeErrorCount",
+                "Value": len(decode_errors),
+                "Unit": "Count"
+            }
+        ])
+
         return {
             "statusCode": 200,
             "body": json.dumps({
@@ -184,6 +226,8 @@ def lambda_handler(event, context):
 
     all_results = []
     batch_s3_keys = []
+    all_scores = []
+    fraud_prediction_count = 0
 
     # Step 2: Invoke endpoint in batches inside one Lambda execution
     for batch_number, record_batch in enumerate(chunked(valid_records, ENDPOINT_BATCH_SIZE), start=1):
@@ -192,6 +236,19 @@ def lambda_handler(event, context):
         try:
             scores = invoke_endpoint_batch(feature_rows)
         except Exception as e:
+            endpoint_error_count += 1
+
+            publish_cloudwatch_metrics([
+                {
+                    "MetricName": "EndpointInvocationErrorCount",
+                    "Value": 1,
+                    "Unit": "Count",
+                    "Dimensions": [
+                        {"Name": "EndpointName", "Value": ENDPOINT_NAME}
+                    ]
+                }
+            ])
+
             return {
                 "statusCode": 500,
                 "body": json.dumps({
@@ -203,6 +260,19 @@ def lambda_handler(event, context):
             }
 
         if len(scores) != len(record_batch):
+            prediction_mismatch_count += 1
+
+            publish_cloudwatch_metrics([
+                {
+                    "MetricName": "PredictionMismatchCount",
+                    "Value": 1,
+                    "Unit": "Count",
+                    "Dimensions": [
+                        {"Name": "EndpointName", "Value": ENDPOINT_NAME}
+                    ]
+                }
+            ])
+
             return {
                 "statusCode": 500,
                 "body": json.dumps({
@@ -219,6 +289,9 @@ def lambda_handler(event, context):
             predicted_label = 1 if float(score) >= THRESHOLD else 0
             endpoint_payload = ",".join(map(str, features))
 
+            all_scores.append(float(score))
+            fraud_prediction_count += predicted_label
+
             output_record = {
                 "transaction_id": record.get("transaction_id"),
                 "timestamp": record.get("timestamp"),
@@ -227,11 +300,11 @@ def lambda_handler(event, context):
                 "type": record.get("type"),
                 "step": record.get("step"),
                 "amount": record.get("amount"),
-                "oldbalanceOrg": record.get("oldbalanceOrg"),
-                "newbalanceOrig": record.get("newbalanceOrig"),
-                "oldbalanceDest": record.get("oldbalanceDest"),
-                "newbalanceDest": record.get("newbalanceDest"),
-                "actual_isFraud": record.get("actual_isFraud"),
+                "oldbalanceorg": record.get("oldbalanceOrg"),
+                "newbalanceorig": record.get("newbalanceOrig"),
+                "oldbalancedest": record.get("oldbalanceDest"),
+                "newbalancedest": record.get("newbalanceDest"),
+                "actual_isfraud": record.get("actual_isFraud"),
                 "predicted_score": float(score),
                 "predicted_label": predicted_label,
                 "threshold": THRESHOLD,
@@ -245,6 +318,7 @@ def lambda_handler(event, context):
         if SAVE_ONE_FILE_PER_BATCH:
             batch_s3_key = save_batch_prediction_results(output_records)
             batch_s3_keys.append(batch_s3_key)
+            s3_write_success_count += 1
 
             for output_record in output_records:
                 all_results.append({
@@ -256,6 +330,7 @@ def lambda_handler(event, context):
         else:
             for output_record in output_records:
                 s3_key = save_prediction_result(output_record)
+                s3_write_success_count += 1
                 all_results.append({
                     "transaction_id": output_record["transaction_id"],
                     "predicted_score": output_record["predicted_score"],
@@ -263,10 +338,79 @@ def lambda_handler(event, context):
                     "s3_key": s3_key
                 })
 
+    processed_count = len(all_results)
+    avg_predicted_score = sum(all_scores) / len(all_scores) if all_scores else 0.0
+    fraud_prediction_rate = (
+        fraud_prediction_count / processed_count if processed_count > 0 else 0.0
+    )
+
+    # Step 4: Publish summary metrics to CloudWatch
+    publish_cloudwatch_metrics([
+        {
+            "MetricName": "InputRecordCount",
+            "Value": total_input_records,
+            "Unit": "Count"
+        },
+        {
+            "MetricName": "ValidRecordCount",
+            "Value": len(valid_records),
+            "Unit": "Count"
+        },
+        {
+            "MetricName": "ProcessedRecordCount",
+            "Value": processed_count,
+            "Unit": "Count"
+        },
+        {
+            "MetricName": "DecodeErrorCount",
+            "Value": len(decode_errors),
+            "Unit": "Count"
+        },
+        {
+            "MetricName": "FraudPredictionCount",
+            "Value": fraud_prediction_count,
+            "Unit": "Count"
+        },
+        {
+            "MetricName": "FraudPredictionRate",
+            "Value": fraud_prediction_rate,
+            "Unit": "None"
+        },
+        {
+            "MetricName": "AvgPredictedScore",
+            "Value": avg_predicted_score,
+            "Unit": "None"
+        },
+        {
+            "MetricName": "EndpointInvocationErrorCount",
+            "Value": endpoint_error_count,
+            "Unit": "Count",
+            "Dimensions": [
+                {"Name": "EndpointName", "Value": ENDPOINT_NAME}
+            ]
+        },
+        {
+            "MetricName": "PredictionMismatchCount",
+            "Value": prediction_mismatch_count,
+            "Unit": "Count",
+            "Dimensions": [
+                {"Name": "EndpointName", "Value": ENDPOINT_NAME}
+            ]
+        },
+        {
+            "MetricName": "S3WriteSuccessCount",
+            "Value": s3_write_success_count,
+            "Unit": "Count"
+        }
+    ])
+
     return {
         "statusCode": 200,
         "body": json.dumps({
-            "processed_count": len(all_results),
+            "processed_count": processed_count,
+            "fraud_prediction_count": fraud_prediction_count,
+            "fraud_prediction_rate": fraud_prediction_rate,
+            "avg_predicted_score": avg_predicted_score,
             "endpoint_batch_size": ENDPOINT_BATCH_SIZE,
             "save_one_file_per_batch": SAVE_ONE_FILE_PER_BATCH,
             "batch_s3_keys": batch_s3_keys,

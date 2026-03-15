@@ -1,3 +1,5 @@
+**[English](README.md) | [简体中文](README_zh_CN.md) | [繁體中文](README_zh_TW.md)**
+
 # AWS Fraud Detection Analysis
 
 A real-time fraud detection pipeline built on AWS, combining offline XGBoost model training with live transaction stream inference, automated alerting, and interactive visualization.

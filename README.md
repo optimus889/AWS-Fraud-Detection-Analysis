@@ -53,9 +53,9 @@ PS_20174392719_1491204439457_log.csv
 
 ```
 Ubuntu Local Machine
-    └── src/stream_transactions_7days.py         # Simulate 7-day transaction window
-        src/stream_transactions_autodays.py      # Simulate custom date range
-        src/stream_transactions_realtime.py      # Stream under current timestamp
+    └── src/stream_transaction_7_days.py          # Simulate 7-day transaction window
+        src/stream_transaction_custom_days.py    # Simulate custom date range
+        src/stream_transaction_real_time.py      # Stream under current timestamp
         └── Kinesis (fraud-stream)
             └── Lambda (fraud_detection_lambda.py)
                 └── SageMaker Endpoint
@@ -204,10 +204,11 @@ AWS-Fraud-Detection-Analysis/
 ├── model/                                # Offline-trained model artifacts
 ├── sql/                                  # Athena SQL query scripts
 ├── src/
-│   ├── stream_transactions_7days.py      # Simulate a fixed 7-day transaction window → Kinesis
-│   ├── stream_transactions_autodays.py   # Simulate a user-defined date range → Kinesis
-│   └── stream_transactions_realtime.py   # Stream transactions under the current timestamp → Kinesis
-├── Training Model and Deploy.ipynb       # SageMaker training, evaluation, and deployment notebook
+│   ├── stream_transaction_7_days.py      # Simulate a fixed 7-day transaction window → Kinesis
+│   ├── stream_transaction_custom_days.py # Simulate a user-defined date range → Kinesis
+│   └── stream_transaction_real_time.py   # Stream transactions under the current timestamp → Kinesis
+├── model/                                # Offline-trained model artifacts
+│   └── Training Model and Deploy.ipynb   # SageMaker training, evaluation, and deployment notebook
 ├── README.md
 └── requirements.txt
 ```
@@ -244,7 +245,7 @@ aws s3 cp s3://finalproject-fraud-detection/raw/PS_20174392719_1491204439457_log
 
 ### Step 2 — Train Model (SageMaker Notebook)
 
-Open and run `Training Model and Deploy.ipynb` in a SageMaker Notebook instance. The notebook will:
+Open and run `model/Training Model and Deploy.ipynb` in a SageMaker Notebook instance. The notebook will:
 
 1. Download the raw CSV from `S3 (raw/)` and preprocess it with chunk-based reading
 2. One-hot encode transaction types and downsample non-fraud records (3% sample)
@@ -254,7 +255,7 @@ Open and run `Training Model and Deploy.ipynb` in a SageMaker Notebook instance.
 
 ### Step 3 — Deploy SageMaker Endpoint
 
-Continue in `Training Model and Deploy.ipynb` to deploy the trained model:
+Continue in `model/Training Model and Deploy.ipynb` to deploy the trained model:
 
 ```python
 predictor = xgb.deploy(
@@ -294,19 +295,19 @@ Choose one of the following streaming scripts depending on your use case:
 
 | Script | Description |
 |---|---|
-| `stream_transactions_7days.py` | Streams a simulated 7-day transaction window to `fraud-stream` |
-| `stream_transactions_autodays.py` | Streams transactions over a user-defined date range to `fraud-stream` |
-| `stream_transactions_realtime.py` | Streams transactions timestamped to the current time to `fraud-stream` |
+| `stream_transaction_7_days.py` | Streams a simulated 7-day transaction window to `fraud-stream` |
+| `stream_transaction_custom_days.py` | Streams transactions over a user-defined date range to `fraud-stream` |
+| `stream_transaction_real_time.py` | Streams transactions timestamped to the current time to `fraud-stream` |
 
 ```bash
 # Option A: Fixed 7-day window
-python3 src/stream_transactions_7days.py
+python3 src/stream_transaction_7_days.py
 
 # Option B: Custom date range
-python3 src/stream_transactions_autodays.py
+python3 src/stream_transaction_custom_days.py
 
 # Option C: Current real-time timestamps
-python3 src/stream_transactions_realtime.py
+python3 src/stream_transaction_real_time.py
 ```
 
 Each script reads the raw CSV from S3, builds a balanced pool (20% fraud, 80% normal by default), and streams transactions to `fraud-stream`. Lambda processes each batch, invokes the SageMaker endpoint, and writes per-transaction JSON results to `s3://finalproject-fraud-detection/predictions/realtime/`.

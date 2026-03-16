@@ -53,7 +53,9 @@ PS_20174392719_1491204439457_log.csv
 
 ```
 本地 Ubuntu 機器
-    └── src/stream_transactions.py
+    └── src/stream_transaction_7_days.py          # 模擬 7 天交易窗口
+        src/stream_transaction_custom_days.py    # 模擬自訂日期區間
+        src/stream_transaction_real_time.py      # 使用當前時間戳即時推流
         └── Kinesis (fraud-stream)
             └── Lambda (fraud_detection_lambda.py)
                 └── SageMaker 端點
@@ -202,8 +204,11 @@ AWS-Fraud-Detection-Analysis/
 ├── model/                                # 離線訓練的模型產物
 ├── sql/                                  # Athena SQL 查詢腳本
 ├── src/
-│   └── stream_transactions.py            # 均衡池建構器與 Kinesis 串流模擬器
-├── Training Model and Deploy.ipynb       # SageMaker 訓練、評估與部署筆記本
+│   ├── stream_transaction_7_days.py      # 模擬固定 7 天交易窗口 → Kinesis
+│   ├── stream_transaction_custom_days.py # 模擬使用者自訂日期區間 → Kinesis
+│   └── stream_transaction_real_time.py   # 使用當前時間戳即時推流 → Kinesis
+├── model/                                # 離線訓練的模型產物
+│   └── Training Model and Deploy.ipynb   # SageMaker 訓練、評估與部署筆記本
 ├── README.md
 └── requirements.txt
 ```
@@ -240,7 +245,7 @@ aws s3 cp s3://finalproject-fraud-detection/raw/PS_20174392719_1491204439457_log
 
 ### 第二步 — 訓練模型（SageMaker 筆記本）
 
-在 SageMaker 筆記本執行個體中開啟並執行 `Training Model and Deploy.ipynb`，該筆記本將：
+在 SageMaker 筆記本執行個體中開啟並執行 `model/Training Model and Deploy.ipynb`，該筆記本將：
 
 1. 從 `S3 (raw/)` 下載原始 CSV，並以分塊方式讀取前處理
 2. 對交易類型進行獨熱編碼，對非詐欺記錄進行降採樣（3% 採樣）
@@ -250,7 +255,7 @@ aws s3 cp s3://finalproject-fraud-detection/raw/PS_20174392719_1491204439457_log
 
 ### 第三步 — 部署 SageMaker 端點
 
-繼續在 `Training Model and Deploy.ipynb` 中部署已訓練模型：
+繼續在 `model/Training Model and Deploy.ipynb` 中部署已訓練模型：
 
 ```python
 predictor = xgb.deploy(
@@ -286,11 +291,26 @@ predictor = xgb.deploy(
 
 ### 第五步 — 啟動即時串流
 
+根據使用情境選擇以下推流腳本之一：
+
+| 腳本 | 說明 |
+|---|---|
+| `stream_transaction_7_days.py` | 模擬固定 7 天交易窗口，推送至 `fraud-stream` |
+| `stream_transaction_custom_days.py` | 模擬使用者自訂日期區間，推送至 `fraud-stream` |
+| `stream_transaction_real_time.py` | 使用當前時間戳進行即時推流，推送至 `fraud-stream` |
+
 ```bash
-python3 src/stream_transactions.py
+# 方式 A：固定 7 天窗口
+python3 src/stream_transaction_7_days.py
+
+# 方式 B：自訂日期區間
+python3 src/stream_transaction_custom_days.py
+
+# 方式 C：當前時間戳即時推流
+python3 src/stream_transaction_real_time.py
 ```
 
-該腳本從 S3 讀取原始 CSV，建構均衡池（預設 20% 詐欺、80% 正常），並向 `fraud-stream` 推送 1,500 筆交易。Lambda 處理每批資料，呼叫 SageMaker 端點，並將逐筆交易的 JSON 結果寫入 `s3://finalproject-fraud-detection/predictions/realtime/`。
+各腳本均從 S3 讀取原始 CSV，建構均衡池（預設 20% 詐欺、80% 正常），並向 `fraud-stream` 推送交易資料。Lambda 處理每批資料，呼叫 SageMaker 端點，並將逐筆交易的 JSON 結果寫入 `s3://finalproject-fraud-detection/predictions/realtime/`。
 
 ### 第六步 — 使用 Athena 查詢結果
 

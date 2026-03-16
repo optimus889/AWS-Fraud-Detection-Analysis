@@ -137,14 +137,21 @@ def invoke_endpoint_batch(feature_rows):
 
     return scores
 
-
 def save_batch_prediction_results(output_records):
-    now = datetime.utcnow()
+    raw_ts = output_records[0].get("timestamp") or output_records[0].get("processed_at")
+
+    if raw_ts:
+        event_time = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+    else:
+        event_time = datetime.utcnow()
+
+    processing_time = datetime.utcnow()
     file_id = uuid.uuid4().hex
+
     s3_key = (
         f"{PREDICTION_PREFIX}/"
-        f"year={now.year}/month={now.month:02d}/day={now.day:02d}/"
-        f"batch_{now.strftime('%Y%m%dT%H%M%S')}_{file_id}.jsonl"
+        f"year={event_time.year}/month={event_time.month:02d}/day={event_time.day:02d}/"
+        f"batch_{processing_time.strftime('%Y%m%dT%H%M%S')}_{file_id}.jsonl"
     )
 
     body = "\n".join(json.dumps(record) for record in output_records)
@@ -158,13 +165,20 @@ def save_batch_prediction_results(output_records):
 
     return s3_key
 
-
 def save_prediction_result(output_record):
-    now = datetime.utcnow()
+    raw_ts = output_record.get("timestamp") or output_record.get("processed_at")
+
+    if raw_ts:
+        event_time = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+    else:
+        event_time = datetime.utcnow()
+
+    file_id = uuid.uuid4().hex
+
     s3_key = (
         f"{PREDICTION_PREFIX}/"
-        f"year={now.year}/month={now.month:02d}/day={now.day:02d}/"
-        f"{output_record['transaction_id']}.json"
+        f"year={event_time.year}/month={event_time.month:02d}/day={event_time.day:02d}/"
+        f"record_{file_id}.json"
     )
 
     s3.put_object(

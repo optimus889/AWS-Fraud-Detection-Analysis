@@ -104,7 +104,7 @@ FROM fraud_analytics.realtime_predictions;
 
 -- Daily fraud trend for QuickSight time-series visualization
 SELECT
-    DATE(from_iso8601_timestamp(processed_at)) AS processed_date,
+    DATE(from_iso8601_timestamp(timestamp)) AS event_date,
     COUNT(*) AS total_transactions,
     SUM(CASE WHEN predicted_label = 1 THEN 1 ELSE 0 END) AS predicted_fraud_count,
     SUM(CASE WHEN actual_isfraud = 1 THEN 1 ELSE 0 END) AS actual_fraud_count,
@@ -112,19 +112,19 @@ SELECT
     ROUND(AVG(predicted_score), 4) AS avg_predicted_score,
     ROUND(AVG(amount), 2) AS avg_transaction_amount
 FROM fraud_analytics.realtime_predictions
-GROUP BY DATE(from_iso8601_timestamp(processed_at))
-ORDER BY processed_date;
+GROUP BY DATE(from_iso8601_timestamp(timestamp))
+ORDER BY event_date;
 
--- Hourly fraud pattern based on processed timestamp
+-- Hourly fraud pattern based on event timestamp
 SELECT
-    HOUR(from_iso8601_timestamp(processed_at)) AS processed_hour,
+    HOUR(from_iso8601_timestamp(timestamp)) AS event_hour,
     COUNT(*) AS total_transactions,
     SUM(CASE WHEN predicted_label = 1 THEN 1 ELSE 0 END) AS predicted_fraud_count,
     SUM(CASE WHEN actual_isfraud = 1 THEN 1 ELSE 0 END) AS actual_fraud_count,
     ROUND(100.0 * SUM(CASE WHEN predicted_label = 1 THEN 1 ELSE 0 END) / COUNT(*), 2) AS predicted_fraud_rate_pct
 FROM fraud_analytics.realtime_predictions
-GROUP BY HOUR(from_iso8601_timestamp(processed_at))
-ORDER BY processed_hour;
+GROUP BY HOUR(from_iso8601_timestamp(timestamp))
+ORDER BY event_hour;
 
 -- Fraud analysis by transaction type
 SELECT
@@ -216,6 +216,6 @@ SELECT
     endpoint_name
 FROM fraud_analytics.realtime_predictions
 WHERE predicted_label = 1
-ORDER BY from_iso8601_timestamp(processed_at) DESC
+ORDER BY from_iso8601_timestamp(timestamp) DESC
 LIMIT 100;
 

@@ -54,8 +54,8 @@ PS_20174392719_1491204439457_log.csv
 ```
 本地 Ubuntu 機器
     └── src/stream_transaction_7_days.py          # 模擬 7 天交易窗口
-        src/stream_transaction_custom_days.py    # 模擬自訂日期區間
-        src/stream_transaction_real_time.py      # 使用當前時間戳即時推流
+        src/stream_transaction_custom_days.py    # 模擬自訂日期範圍
+        src/stream_transaction_real_time.py      # 使用當前時間戳推流
         └── Kinesis (fraud-stream)
             └── Lambda (fraud_detection_lambda.py)
                 └── SageMaker 端點
@@ -196,19 +196,21 @@ finalproject-fraud-detection/
 
 ```
 AWS-Fraud-Detection-Analysis/
-├── architecture/                         # AWS 架構圖
-├── dashboard/                            # QuickSight 匯出視覺化圖表
-├── dataset/                              # 離線產生的交易資料集（見資料集章節）
+├── architecture/
+│   └── aws-fraud-detection-architecture.png     # AWS 架構圖
+├── dashboard/
+│   └── dashboard_demo.pdf                        # QuickSight 儀表板演示匯出
+├── dataset/                                      # 離線產生的交易資料集
 ├── lambda/
-│   └── fraud_detection_lambda.py         # Lambda 處理器：解碼 → 特徵建構 → 批次推理 → S3 寫入
-├── model/                                # 離線訓練的模型產物
-├── sql/                                  # Athena SQL 查詢腳本
+│   └── fraud_detection_lambda.py                 # Lambda 處理器：解碼 → 特徵建構 → 批次推理 → S3 寫入
+├── model/                                        # 離線訓練的模型產物
+│   └── Training Model and Deploy.ipynb           # SageMaker 訓練、評估與部署筆記本
+├── sql/
+│   └── athena_queries.sql                        # Athena SQL 查詢腳本
 ├── src/
-│   ├── stream_transaction_7_days.py      # 模擬固定 7 天交易窗口 → Kinesis
-│   ├── stream_transaction_custom_days.py # 模擬使用者自訂日期區間 → Kinesis
-│   └── stream_transaction_real_time.py   # 使用當前時間戳即時推流 → Kinesis
-├── model/                                # 離線訓練的模型產物
-│   └── Training Model and Deploy.ipynb   # SageMaker 訓練、評估與部署筆記本
+│   ├── stream_transaction_7_days.py              # 模擬固定 7 天交易窗口 → Kinesis
+│   ├── stream_transaction_custom_days.py         # 模擬使用者自訂日期範圍 → Kinesis
+│   └── stream_transaction_real_time.py           # 使用當前時間戳推送交易 → Kinesis
 ├── README.md
 └── requirements.txt
 ```
@@ -291,34 +293,34 @@ predictor = xgb.deploy(
 
 ### 第五步 — 啟動即時串流
 
-根據使用情境選擇以下推流腳本之一：
+根據使用場景選擇以下推流腳本之一：
 
 | 腳本 | 說明 |
 |---|---|
-| `stream_transaction_7_days.py` | 模擬固定 7 天交易窗口，推送至 `fraud-stream` |
-| `stream_transaction_custom_days.py` | 模擬使用者自訂日期區間，推送至 `fraud-stream` |
-| `stream_transaction_real_time.py` | 使用當前時間戳進行即時推流，推送至 `fraud-stream` |
+| `stream_transaction_7_days.py` | 向 `fraud-stream` 推送模擬 7 天交易窗口 |
+| `stream_transaction_custom_days.py` | 向 `fraud-stream` 推送使用者自訂日期範圍的交易 |
+| `stream_transaction_real_time.py` | 向 `fraud-stream` 推送使用當前時間戳的交易 |
 
 ```bash
-# 方式 A：固定 7 天窗口
+# 方案 A：固定 7 天窗口
 python3 src/stream_transaction_7_days.py
 
-# 方式 B：自訂日期區間
+# 方案 B：自訂日期範圍
 python3 src/stream_transaction_custom_days.py
 
-# 方式 C：當前時間戳即時推流
+# 方案 C：當前即時時間戳
 python3 src/stream_transaction_real_time.py
 ```
 
-各腳本均從 S3 讀取原始 CSV，建構均衡池（預設 20% 詐欺、80% 正常），並向 `fraud-stream` 推送交易資料。Lambda 處理每批資料，呼叫 SageMaker 端點，並將逐筆交易的 JSON 結果寫入 `s3://finalproject-fraud-detection/predictions/realtime/`。
+每個腳本均從 S3 讀取原始 CSV，建構均衡池（預設 20% 詐欺、80% 正常），並向 `fraud-stream` 推送交易。Lambda 處理每批資料，呼叫 SageMaker 端點，並將逐筆交易的 JSON 結果寫入 `s3://finalproject-fraud-detection/predictions/realtime/`。
 
 ### 第六步 — 使用 Athena 查詢結果
 
-對預測儲存桶執行 `sql/` 中的 SQL 腳本，結果儲存至 `s3://finalproject-fraud-detection/Athena-results/`。
+對預測儲存桶執行 `sql/athena_queries.sql` 中的 SQL 腳本，結果儲存至 `s3://finalproject-fraud-detection/Athena-results/`。
 
 ### 第七步 — 使用 QuickSight 視覺化
 
-將 QuickSight 連接至 Athena 資料來源，並從 `dashboard/` 載入儀表板設定，互動式探索詐欺指標。
+將 QuickSight 連接至 Athena 資料來源，互動式探索詐欺指標。示例儀表板匯出檔案見 `dashboard/dashboard_demo.pdf`。
 
 ### 第八步 — 使用 CloudWatch 與 SNS 監控
 

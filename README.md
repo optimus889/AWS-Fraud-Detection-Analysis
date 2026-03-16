@@ -196,19 +196,21 @@ finalproject-fraud-detection/
 
 ```
 AWS-Fraud-Detection-Analysis/
-├── architecture/                         # AWS architecture diagrams
-├── dashboard/                            # QuickSight exported visualizations
-├── dataset/                              # Offline-generated transaction datasets (see Dataset section)
+├── architecture/
+│   └── aws-fraud-detection-architecture.png     # AWS architecture diagram
+├── dashboard/
+│   └── dashboard_demo.pdf                        # QuickSight dashboard demo export
+├── dataset/                                      # Offline-generated transaction datasets 
 ├── lambda/
-│   └── fraud_detection_lambda.py         # Lambda handler: decode → feature build → batch infer → S3 write
-├── model/                                # Offline-trained model artifacts
-├── sql/                                  # Athena SQL query scripts
+│   └── fraud_detection_lambda.py                 # Lambda handler: decode → feature build → batch infer → S3 write
+├── model/                                        # Offline-trained model artifacts
+│   └── Training Model and Deploy.ipynb           # SageMaker training, evaluation, and deployment notebook
+├── sql/
+│   └── athena_queries.sql                        # Athena SQL query scripts
 ├── src/
-│   ├── stream_transaction_7_days.py      # Simulate a fixed 7-day transaction window → Kinesis
-│   ├── stream_transaction_custom_days.py # Simulate a user-defined date range → Kinesis
-│   └── stream_transaction_real_time.py   # Stream transactions under the current timestamp → Kinesis
-├── model/                                # Offline-trained model artifacts
-│   └── Training Model and Deploy.ipynb   # SageMaker training, evaluation, and deployment notebook
+│   ├── stream_transaction_7_days.py              # Simulate a fixed 7-day transaction window → Kinesis
+│   ├── stream_transaction_custom_days.py         # Simulate a user-defined date range → Kinesis
+│   └── stream_transaction_real_time.py           # Stream transactions under the current timestamp → Kinesis
 ├── README.md
 └── requirements.txt
 ```
@@ -314,11 +316,11 @@ Each script reads the raw CSV from S3, builds a balanced pool (20% fraud, 80% no
 
 ### Step 6 — Query Results with Athena
 
-Run the SQL scripts in `sql/` against the predictions bucket. Results are saved to `s3://finalproject-fraud-detection/Athena-results/`.
+Run the SQL scripts in `sql/athena_queries.sql` against the predictions bucket. Results are saved to `s3://finalproject-fraud-detection/Athena-results/`.
 
 ### Step 7 — Visualize with QuickSight
 
-Connect QuickSight to the Athena data source and load the dashboard configurations from `dashboard/` to explore fraud metrics interactively.
+Connect QuickSight to the Athena data source and explore fraud metrics interactively. A sample dashboard export is available in `dashboard/dashboard_demo.pdf`.
 
 ### Step 8 — Monitor with CloudWatch & SNS
 

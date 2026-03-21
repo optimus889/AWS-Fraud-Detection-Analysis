@@ -217,6 +217,137 @@ AWS-Fraud-Detection-Analysis/
 
 ---
 
+## Ubuntu Linux 環境配置
+
+本節涵蓋在本地 Ubuntu 機器上執行流水線前所需的所有 AWS 相關配置步驟。
+
+### 1. 安裝 AWS CLI v2
+
+```bash
+# 下載並安裝 AWS CLI v2
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# 驗證安裝
+aws --version
+# 預期輸出：aws-cli/2.x.x Python/3.x.x Linux/...
+```
+
+### 2. 設定 AWS 憑證
+
+```bash
+aws configure
+```
+
+依提示依序輸入以下資訊：
+
+```
+AWS Access Key ID [None]:      <你的 IAM 使用者 Access Key ID>
+AWS Secret Access Key [None]:  <你的 IAM 使用者 Secret Access Key>
+Default region name [None]:    us-east-1
+Default output format [None]:  json
+```
+
+> 憑證儲存於 `~/.aws/credentials`，區域與輸出格式設定儲存於 `~/.aws/config`。  
+> IAM 使用者須已附加 `AmazonS3FullAccess`、`AmazonKinesisFullAccess` 和 `AmazonSageMakerFullAccess`（詳見上方 IAM 章節）。
+
+**驗證憑證是否生效：**
+
+```bash
+aws sts get-caller-identity
+```
+
+預期輸出：
+
+```json
+{
+    "UserId": "AIDAXXXXXXXXXXXXXXXXX",
+    "Account": "123456789012",
+    "Arn": "arn:aws:iam::123456789012:user/你的-iam-使用者名稱"
+}
+```
+
+### 3. 驗證 S3 存取
+
+```bash
+# 列出所有儲存桶
+aws s3 ls
+
+# 確認專案儲存桶可正常存取
+aws s3 ls s3://finalproject-fraud-detection/
+```
+
+### 4. 驗證 Kinesis 存取
+
+```bash
+# 確認 fraud-stream 存在且狀態為活躍
+aws kinesis describe-stream-summary --stream-name fraud-stream
+```
+
+預期輸出中包含 `"StreamStatus": "ACTIVE"`。
+
+### 5. 驗證 SageMaker 端點存取
+
+部署端點後（快速開始第三步），從本地機器確認端點可正常存取：
+
+```bash
+aws sagemaker describe-endpoint --endpoint-name <你的端點名稱>
+```
+
+預期輸出中包含 `"EndpointStatus": "InService"`。
+
+### 6. 設定 Python 虛擬環境
+
+```bash
+# 建立並啟用虛擬環境
+python3 -m venv venv
+source venv/bin/activate
+
+# 安裝相依套件
+pip install -r requirements.txt
+```
+
+> 需要 Python 3.10 或更高版本。若系統預設版本較低，可透過以下指令安裝：
+> ```bash
+> sudo apt update && sudo apt install -y python3.10 python3.10-venv python3-pip
+> ```
+
+### 7. 同步系統時鐘（重要）
+
+AWS 請求簽署要求系統時鐘準確，時鐘偏差將導致 `InvalidSignatureException` 錯誤。
+
+```bash
+# 安裝並透過 NTP 同步時間
+sudo apt update && sudo apt install -y chrony
+sudo systemctl enable chrony
+sudo systemctl start chrony
+
+# 驗證同步狀態
+chronyc tracking
+```
+
+輸出中 `System time` 偏差應遠小於 1 秒。
+
+### 8. 環境變數參考（可選）
+
+為避免在命令列中直接傳遞憑證，可在 shell 工作階段中匯出環境變數：
+
+```bash
+export AWS_ACCESS_KEY_ID="你的-access-key-id"
+export AWS_SECRET_ACCESS_KEY="你的-secret-access-key"
+export AWS_DEFAULT_REGION="us-east-1"
+
+# 推流腳本使用的專案專用變數
+export KINESIS_STREAM_NAME="fraud-stream"
+export PREDICTION_BUCKET="finalproject-fraud-detection"
+export ENDPOINT_NAME="sagemaker-xgboost-2026-03-13-23-05-26-528"
+```
+
+> 環境變數優先級高於 `~/.aws/credentials`。如需恢復使用憑證檔案，可使用 `unset` 取消對應變數。
+
+---
+
 ## 快速開始
 
 ### 前置條件

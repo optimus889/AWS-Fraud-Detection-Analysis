@@ -217,6 +217,137 @@ AWS-Fraud-Detection-Analysis/
 
 ---
 
+## Ubuntu Linux Environment Setup
+
+This section covers all AWS-related configuration steps required on your local Ubuntu machine before running the pipeline.
+
+### 1. Install AWS CLI v2
+
+```bash
+# Download and install AWS CLI v2
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Verify installation
+aws --version
+# Expected output: aws-cli/2.x.x Python/3.x.x Linux/...
+```
+
+### 2. Configure AWS Credentials
+
+```bash
+aws configure
+```
+
+You will be prompted to enter the following:
+
+```
+AWS Access Key ID [None]:      <your-iam-user-access-key-id>
+AWS Secret Access Key [None]:  <your-iam-user-secret-access-key>
+Default region name [None]:    us-east-1
+Default output format [None]:  json
+```
+
+> Credentials are saved to `~/.aws/credentials` and region/output settings to `~/.aws/config`.  
+> The IAM user must have `AmazonS3FullAccess`, `AmazonKinesisFullAccess`, and `AmazonSageMakerFullAccess` attached (see IAM section above).
+
+**Verify credentials are working:**
+
+```bash
+aws sts get-caller-identity
+```
+
+Expected output:
+
+```json
+{
+    "UserId": "AIDAXXXXXXXXXXXXXXXXX",
+    "Account": "123456789012",
+    "Arn": "arn:aws:iam::123456789012:user/your-iam-username"
+}
+```
+
+### 3. Verify S3 Access
+
+```bash
+# List all buckets
+aws s3 ls
+
+# Confirm the project bucket is accessible
+aws s3 ls s3://finalproject-fraud-detection/
+```
+
+### 4. Verify Kinesis Access
+
+```bash
+# Confirm fraud-stream exists and is active
+aws kinesis describe-stream-summary --stream-name fraud-stream
+```
+
+Expected output includes `"StreamStatus": "ACTIVE"`.
+
+### 5. Verify SageMaker Endpoint Access
+
+After deploying the endpoint (Step 3 in Getting Started), confirm it is reachable from your local machine:
+
+```bash
+aws sagemaker describe-endpoint --endpoint-name <your-endpoint-name>
+```
+
+Expected output includes `"EndpointStatus": "InService"`.
+
+### 6. Set Up Python Virtual Environment
+
+```bash
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+> Python 3.10 or higher is required. If your system default is older, install via:
+> ```bash
+> sudo apt update && sudo apt install -y python3.10 python3.10-venv python3-pip
+> ```
+
+### 7. Sync System Clock (Important)
+
+AWS request signing requires your system clock to be accurate. Clock skew will cause `InvalidSignatureException` errors.
+
+```bash
+# Install and sync time via NTP
+sudo apt update && sudo apt install -y chrony
+sudo systemctl enable chrony
+sudo systemctl start chrony
+
+# Verify sync status
+chronyc tracking
+```
+
+The `System time` offset shown should be well under 1 second.
+
+### 8. Environment Variable Reference (Optional)
+
+To avoid passing credentials on the command line, you can export them as environment variables in your shell session:
+
+```bash
+export AWS_ACCESS_KEY_ID="your-access-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+export AWS_DEFAULT_REGION="us-east-1"
+
+# Project-specific variables used by streaming scripts
+export KINESIS_STREAM_NAME="fraud-stream"
+export PREDICTION_BUCKET="finalproject-fraud-detection"
+export ENDPOINT_NAME="sagemaker-xgboost-2026-03-13-23-05-26-528"
+```
+
+> Environment variables take precedence over `~/.aws/credentials`. Remove them or use `unset` to revert to the credentials file.
+
+---
+
 ## Getting Started
 
 ### Prerequisites

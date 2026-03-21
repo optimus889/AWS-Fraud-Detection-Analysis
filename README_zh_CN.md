@@ -217,6 +217,137 @@ AWS-Fraud-Detection-Analysis/
 
 ---
 
+## Ubuntu Linux 环境配置
+
+本节涵盖在本地 Ubuntu 机器上运行流水线前所需的所有 AWS 相关配置步骤。
+
+### 1. 安装 AWS CLI v2
+
+```bash
+# 下载并安装 AWS CLI v2
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# 验证安装
+aws --version
+# 预期输出：aws-cli/2.x.x Python/3.x.x Linux/...
+```
+
+### 2. 配置 AWS 凭证
+
+```bash
+aws configure
+```
+
+按提示依次输入以下信息：
+
+```
+AWS Access Key ID [None]:      <你的 IAM 用户 Access Key ID>
+AWS Secret Access Key [None]:  <你的 IAM 用户 Secret Access Key>
+Default region name [None]:    us-east-1
+Default output format [None]:  json
+```
+
+> 凭证保存于 `~/.aws/credentials`，区域和输出格式保存于 `~/.aws/config`。  
+> IAM 用户须已附加 `AmazonS3FullAccess`、`AmazonKinesisFullAccess` 和 `AmazonSageMakerFullAccess`（详见上方 IAM 章节）。
+
+**验证凭证是否生效：**
+
+```bash
+aws sts get-caller-identity
+```
+
+预期输出：
+
+```json
+{
+    "UserId": "AIDAXXXXXXXXXXXXXXXXX",
+    "Account": "123456789012",
+    "Arn": "arn:aws:iam::123456789012:user/你的-iam-用户名"
+}
+```
+
+### 3. 验证 S3 访问
+
+```bash
+# 列出所有存储桶
+aws s3 ls
+
+# 确认项目存储桶可正常访问
+aws s3 ls s3://finalproject-fraud-detection/
+```
+
+### 4. 验证 Kinesis 访问
+
+```bash
+# 确认 fraud-stream 存在且状态为活跃
+aws kinesis describe-stream-summary --stream-name fraud-stream
+```
+
+预期输出中包含 `"StreamStatus": "ACTIVE"`。
+
+### 5. 验证 SageMaker 端点访问
+
+部署端点后（快速开始第三步），从本地机器确认端点可正常访问：
+
+```bash
+aws sagemaker describe-endpoint --endpoint-name <你的端点名称>
+```
+
+预期输出中包含 `"EndpointStatus": "InService"`。
+
+### 6. 配置 Python 虚拟环境
+
+```bash
+# 创建并激活虚拟环境
+python3 -m venv venv
+source venv/bin/activate
+
+# 安装依赖
+pip install -r requirements.txt
+```
+
+> 需要 Python 3.10 或更高版本。若系统默认版本较低，可通过以下命令安装：
+> ```bash
+> sudo apt update && sudo apt install -y python3.10 python3.10-venv python3-pip
+> ```
+
+### 7. 同步系统时钟（重要）
+
+AWS 请求签名要求系统时钟准确，时钟偏差将导致 `InvalidSignatureException` 错误。
+
+```bash
+# 安装并通过 NTP 同步时间
+sudo apt update && sudo apt install -y chrony
+sudo systemctl enable chrony
+sudo systemctl start chrony
+
+# 验证同步状态
+chronyc tracking
+```
+
+输出中 `System time` 偏差应远小于 1 秒。
+
+### 8. 环境变量参考（可选）
+
+为避免在命令行中直接传递凭证，可在 shell 会话中导出环境变量：
+
+```bash
+export AWS_ACCESS_KEY_ID="你的-access-key-id"
+export AWS_SECRET_ACCESS_KEY="你的-secret-access-key"
+export AWS_DEFAULT_REGION="us-east-1"
+
+# 推流脚本使用的项目专用变量
+export KINESIS_STREAM_NAME="fraud-stream"
+export PREDICTION_BUCKET="finalproject-fraud-detection"
+export ENDPOINT_NAME="sagemaker-xgboost-2026-03-13-23-05-26-528"
+```
+
+> 环境变量优先级高于 `~/.aws/credentials`。如需恢复使用凭证文件，可使用 `unset` 取消对应变量。
+
+---
+
 ## 快速开始
 
 ### 前置条件

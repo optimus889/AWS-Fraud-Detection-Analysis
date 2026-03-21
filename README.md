@@ -447,7 +447,7 @@ Each script reads the raw CSV from S3, builds a balanced pool (20% fraud, 80% no
 
 ### Step 6 — Query Results with Athena
 
-Run the SQL scripts in `sql/athena_queries.sql` against the predictions bucket. Results are saved to `s3://finalproject-fraud-detection/Athena-results/`.
+Run the SQL scripts in `sql/athena_queries.sql` against the predictions bucket. Results are saved to `s3://finalproject-fraud-detection/athena-results/`.
 
 ### Step 7 — Visualize with QuickSight
 

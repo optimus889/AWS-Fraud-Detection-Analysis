@@ -447,7 +447,7 @@ python3 src/stream_transaction_real_time.py
 
 ### 第六步 — 使用 Athena 查詢結果
 
-對預測儲存桶執行 `sql/athena_queries.sql` 中的 SQL 腳本，結果儲存至 `s3://finalproject-fraud-detection/Athena-results/`。
+對預測儲存桶執行 `sql/athena_queries.sql` 中的 SQL 腳本，結果儲存至 `s3://finalproject-fraud-detection/athena-results/`。
 
 ### 第七步 — 使用 QuickSight 視覺化
 

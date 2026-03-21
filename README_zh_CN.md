@@ -447,7 +447,7 @@ python3 src/stream_transaction_real_time.py
 
 ### 第六步 — 使用 Athena 查询结果
 
-对预测存储桶运行 `sql/athena_queries.sql` 中的 SQL 脚本，结果保存至 `s3://finalproject-fraud-detection/Athena-results/`。
+对预测存储桶运行 `sql/athena_queries.sql` 中的 SQL 脚本，结果保存至 `s3://finalproject-fraud-detection/athena-results/`。
 
 ### 第七步 — 使用 QuickSight 可视化
 
